@@ -97,16 +97,17 @@ dsh-plugin/
 
 ## 7. 下一步 / 待办
 
-1. **移动后收尾**：删除可再生目录、`git init`、建独立仓库（建议 `superagents-lab/dsh-s1`，
-   与 README 里 repository 字段一致）、发布 npm。
+1. ~~移动后收尾~~（已完成）：仓库已建 https://github.com/superagents-lab/dsh-s1
+   （public、main 分支），LICENSE + prepack + CI 发版工作流均已入库。剩余
+   「首次手动 npm publish + npmjs 配置 trusted publishing」（见 §10 发版流程）。
 2. **可选补 `s1_screenshot` / `s1_deepcrawl`**（SDK 都有对应方法）：
    - `s1_screenshot` 输出是二进制图，需接 DSH 的 attachment 服务（`ctx.attachments`）再出
      `image` block，不能只返回 base64；当前生产 adapter 仍 text-only，故暂缓。
    - `s1_deepcrawl` 是长轮询任务（默认 300s），SDK `deepcrawl()` 阻塞到完成；接 `exec.signal`
      + 设 `timeoutMs` 即可，但不在 MCP/CLI 面里，暂缓。
 3. **OAuth**：走「下沉进 `@search1api/client`」或「插件复用 CLI 的 `getAccessCredential`」。
-4. **小瑕疵**：SDK 缺 key 时错误文案是 `SEARCH1API_API_KEY`，会误导；可在插件 catch 后
-   重写成 `S1_KEY`（或推进 SDK 统一 env 名）。
+4. ~~小瑕疵~~（已修）：`getClient()` 现在严格只认 `S1_KEY`（不再回退 SDK 的
+   `SEARCH1API_API_KEY`），缺 key 抛清晰提示。SDK env 名统一仍待推进。
 5. 可选：给插件加 `ctx.systemPrompt.section(...)` 提示（像 `tool-bash` 那样）教模型用好参数。
 
 ## 8. 已验证的坑（避免重踩）
@@ -136,3 +137,23 @@ npm run build
 
 E2E 脚本的调参：`DSH_BIN`、`S1_E2E_HOME`、`DSH_PROFILE`、`S1_E2E_QUERY`、
 `S1_E2E_COMPOSE_ONLY=1`（只验证到 compose，跳过 LLM 实调）。
+
+## 10. 发版流程（自动发版）
+
+参照 `search1api-cli`：tag 触发 `.github/workflows/release.yml`。
+
+```bash
+# 1. 改 package.json 的 version
+# 2. 打 tag 并推送（触发 CI）
+git tag vX.Y.Z && git push origin vX.Y.Z
+```
+
+CI 三阶段：`verify`（npm ci + audit + tag==version 校验 + typecheck + build +
+`npm pack --dry-run`）→ GitHub Release（`--generate-notes`）→ `publish-npm`
+（OIDC 免 token；`npm` 环境带 required reviewer 审批，与 CLI 一致）。
+
+一次性前置（首次发布前）：
+1. 本地 `npm publish`（首次必须手动 —— 包要先存在于 npm 才能配 trusted publishing）。
+2. npmjs.com → package dsh-s1 → Settings → Trusted Publishing：允许
+   `superagents-lab/dsh-s1` + environment `npm`。
+之后每次发版全自动（发布前在 GitHub 上审批 `npm` 环境即可）。
