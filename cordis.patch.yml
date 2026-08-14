@@ -1,0 +1,7 @@
+# dsh-s1 bundle patch: one insert over the profile's composed tree.
+# The loader resolves this package's main entry (`dsh-s1`), which registers
+# the native s1_* tools on ctx.tools. Later layers (profile cordis.patch.yml,
+# --patch overlays) address this row by its id.
+- insert:
+    - id: s1-tools
+      name: 'dsh-s1'
