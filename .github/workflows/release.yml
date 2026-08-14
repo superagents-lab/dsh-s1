@@ -1,0 +1,85 @@
+# Release automation for dsh-s1, mirroring search1api-cli's release workflow.
+#
+# Flow:
+#   1. Bump `version` in package.json.
+#   2. `git tag vX.Y.Z && git push origin vX.Y.Z`
+#   3. verify -> GitHub Release -> publish-npm (OIDC, no token in secrets).
+#
+# One-time setup (already done): the `npm` GitHub environment with a required
+# reviewer; on npmjs.com, trusted publishing for dsh-s1 must point at
+# superagents-lab/dsh-s1 + environment `npm`.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - name: Verify release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          node -e "const { version } = require('./package.json');
+          if (process.env.RELEASE_TAG !== 'v' + version)
+          throw new Error('Release tag must be v' + version);"
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm pack --dry-run
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "${{ github.ref_name }}" >/dev/null 2>&1; then
+            echo "Release ${{ github.ref_name }} already exists"
+          else
+            gh release create "${{ github.ref_name }}" \
+              --title "${{ github.ref_name }}" \
+              --generate-notes
+          fi
+
+  publish-npm:
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/dsh-s1
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm ci
+      - name: Publish package
+        run: |
+          PACKAGE_SPEC=$(node -p "const packageJson = require('./package.json'); packageJson.name + '@' + packageJson.version")
+          if npm view "$PACKAGE_SPEC" version >/dev/null 2>&1; then
+            echo "$PACKAGE_SPEC is already published"
+          else
+            npm publish
+          fi
