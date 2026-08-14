@@ -1,5 +1,7 @@
 # dsh-s1
 
+[![Awesome DSH Plugin](https://awesome-dsh-plugin.com/badge.svg)](https://awesome-dsh-plugin.com)
+
 Native [s1](https://s1.dev) tools for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (DSH).
 
 Unlike the MCP server (`search1api-mcp`, a generic bridge that surfaces as
