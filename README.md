@@ -23,6 +23,12 @@ the official [`@search1api/client`](https://www.npmjs.com/package/@search1api/cl
 Not yet implemented: `s1_screenshot` (needs DSH attachment/image support) and
 `s1_deepcrawl` (long-polling task).
 
+## Screenshots
+
+![s1_search in DeepSeek Harness](assets/dsh-s1-01.png)
+
+![s1_crawl in DeepSeek Harness](assets/dsh-s1-02.png)
+
 ## Skill
 
 The package also bundles a `s1` skill (`ctx.skills.register`), which teaches the
