@@ -36,7 +36,7 @@ jobs:
           if (process.env.RELEASE_TAG !== 'v' + version)
           throw new Error('Release tag must be v' + version);"
       - run: npm run typecheck
-      - run: npm run build
+      - run: npm test
       - run: npm pack --dry-run
 
   release:

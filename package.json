@@ -1,6 +1,6 @@
 {
   "name": "dsh-s1",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Native s1 tools for the DeepSeek Harness (DSH), registered as first-class tools (s1_search, ...).",
   "type": "module",
   "main": "./lib/index.js",
