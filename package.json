@@ -20,7 +20,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dsh": {
     "bundle": {
@@ -28,7 +29,7 @@
     }
   },
   "dependencies": {
-    "@search1api/client": "^0.2.0"
+    "@search1api/client": "^0.4.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
