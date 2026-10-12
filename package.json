@@ -1,6 +1,6 @@
 {
   "name": "dsh-s1",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Native s1 tools for the DeepSeek Harness (DSH), registered as first-class tools (s1_search, ...).",
   "type": "module",
   "main": "./lib/index.js",
@@ -20,7 +20,8 @@
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "test": "npm run build && node --test tests/*.test.mjs"
   },
   "dsh": {
     "bundle": {
@@ -28,7 +29,7 @@
     }
   },
   "dependencies": {
-    "@search1api/client": "^0.2.0"
+    "@search1api/client": "^0.4.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",

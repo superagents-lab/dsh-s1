@@ -4,7 +4,7 @@
  * This is a Cordis plugin (namespace export: `name` / `inject` / `apply`),
  * loaded by the DSH loader through the `s1-tools` row in `cordis.patch.yml`.
  * It registers `s1_search`, `s1_news`, `s1_crawl`, `s1_sitemap`, and
- * `s1_trending` as first-class tools on `ctx.tools`, in the same layer as
+ * `s1_trending`, and `s1_ask` as first-class tools on `ctx.tools`, in the same layer as
  * `read`, `bash`, `subagent`, and the other built-in DSH tools.
  *
  * The heavy lifting is delegated to the official `@search1api/client` SDK in
@@ -14,7 +14,7 @@
  */
 import type { Context } from "@deepseek-ai/cordis";
 import type { ContentBlock } from "@deepseek-ai/dsh-llm";
-import { defineTool } from "@deepseek-ai/dsh-tools";
+import { defineTool, type JsonValue } from "@deepseek-ai/dsh-tools";
 // Pull in the `ctx.skills` service type augmentation.
 import type {} from "@deepseek-ai/dsh-skill";
 import { Search1API } from "@search1api/client";
@@ -31,6 +31,8 @@ export interface Config {
   search?: boolean;
   /** Register `s1_news`. Defaults to true. */
   news?: boolean;
+  /** Register `s1_ask`. Defaults to true. */
+  ask?: boolean;
   /** Register `s1_crawl`. Defaults to true. */
   crawl?: boolean;
   /** Register `s1_sitemap`. Defaults to true. */
@@ -44,8 +46,10 @@ export interface Config {
 const SEARCH_ENGINES = [
   "google",
   "bing",
+  "bingcn",
   "duckduckgo",
   "yahoo",
+  "yandex",
   "youtube",
   "x",
   "reddit",
@@ -55,7 +59,7 @@ const SEARCH_ENGINES = [
   "bilibili",
   "imdb",
   "wikipedia",
-  "sogou",
+  "grokipedia",
   "baidu",
   "360",
   "quark",
@@ -77,7 +81,7 @@ const TRENDING_SERVICES = ["github", "hackernews"] as const;
 /** Bundled `s1` skill: teaches the model how to use the s1_* tools well. */
 const S1_SKILL_NAME = "s1";
 const S1_SKILL_DESCRIPTION =
-  "Live web search, news, page retrieval, sitemap discovery, and trending topics through the native s1_* tools.";
+  "Live web search, agentic search, news, page retrieval, sitemap discovery, and trending topics through the native s1_* tools.";
 const S1_SKILL_WHEN_TO_USE =
   "Use when the user wants to search the web, look something up, research a topic, read or summarize a URL, check current news, explore a site's links, or see trending topics.";
 const S1_SKILL_CONTENT = `# s1
@@ -86,14 +90,16 @@ Live web research through the native s1_* tools.
 
 ## Tools
 
-- s1_search — search the web. Engines: google, bing, duckduckgo, yahoo, youtube, x, reddit, github, arxiv, wechat, bilibili, imdb, wikipedia, sogou, baidu, 360, quark.
+- s1_search — search the web. Engines: google, bing, bingcn, duckduckgo, yahoo, yandex, youtube, x, reddit, github, arxiv, wechat, bilibili, imdb, wikipedia, grokipedia, baidu, 360, quark.
 - s1_news — current news. Engines: google, bing, duckduckgo, yahoo, hackernews, reuters.
+- s1_ask — describe what to find; the server chooses engines and time window and ranks results. Query only; costs 5 credits.
 - s1_crawl — extract the readable title and full text from a URL.
 - s1_sitemap — discover links on a page or domain.
 - s1_trending — trending repos or stories from github or hackernews.
 
 ## When to use which tool
 
+- Wants automatic routing across sources or a natural-language research request → s1_ask.
 - Wants to search the web → s1_search.
 - Wants the full page behind a result, or a URL the user shared → s1_crawl.
 - Wants current news or recent coverage → s1_news.
@@ -114,6 +120,7 @@ Adapt parameters to intent — don't just use defaults:
 
 ## Notes
 
+- Search/news results keep optional published_date and engine-specific metadata (kind, stars, language, points, num_comments, story_url).
 - Results are citable: keep the returned title and url when citing sources.
 - s1_crawl needs a public HTTP(S) URL; set enableFallback: true when the primary crawler fails.
 - These tools are already connected and authenticated — don't install anything or switch transports.
@@ -135,26 +142,42 @@ const RESULTS_OUTPUT_SCHEMA = {
           url: { type: "string", required: true },
           snippet: { type: "string" },
           content: { type: "string" },
+          published_date: { type: "string" },
+          metadata: { type: "object", additionalProperties: true },
+          source: { type: "string" },
+          relevance: { type: "number" },
         },
       },
     },
   },
 } as const;
 
-/** Map SDK search/news results into the citable `{title,url,snippet,content}` shape. */
+function jsonObject(value: object): Record<string, JsonValue> {
+  return JSON.parse(JSON.stringify(value)) as Record<string, JsonValue>;
+}
+
+/** Keep dates, metadata and Ask scores while mapping API links to citable URLs. */
 function mapResults(
   results: Array<{
     title: string;
     link: string;
     snippet: string;
     content?: string;
+    published_date?: string;
+    metadata?: Record<string, unknown>;
+    source?: string;
+    relevance?: number;
   }>
-): Array<{ title: string; url: string; snippet: string; content?: string }> {
+) {
   return results.map((item) => ({
     title: item.title,
     url: item.link,
     snippet: item.snippet,
     ...(item.content ? { content: item.content } : {}),
+    ...(item.published_date ? { published_date: item.published_date } : {}),
+    ...(item.metadata ? { metadata: jsonObject(item.metadata) } : {}),
+    ...(item.source !== undefined ? { source: item.source } : {}),
+    ...(item.relevance !== undefined ? { relevance: item.relevance } : {}),
   }));
 }
 
@@ -209,6 +232,7 @@ export function apply(ctx: Context, config: Config = {}): void {
             enum: SEARCH_ENGINES,
             description: "Search engine to use; choose one only when it matches the user's source intent.",
           },
+          page: { type: "number", description: "Optional native results page (1-100)." },
           timeRange: { type: "string", enum: TIME_RANGES, description: "Optional recency window for time-sensitive searches." },
           includeSites: { type: "array", items: { type: "string" }, description: "Domains to include when the user explicitly scopes the search." },
           excludeSites: { type: "array", items: { type: "string" }, description: "Domains to exclude from the search." },
@@ -223,6 +247,7 @@ export function apply(ctx: Context, config: Config = {}): void {
             {
               maxResults: args.maxResults,
               searchService: args.searchService,
+              page: args.page,
               timeRange: args.timeRange,
               includeSites: args.includeSites,
               excludeSites: args.excludeSites,
@@ -230,6 +255,41 @@ export function apply(ctx: Context, config: Config = {}): void {
             { signal: exec.signal }
           );
           return { results: mapResults(response.results) };
+        },
+      })
+    );
+  }
+
+  if (config.ask !== false) {
+    ctx.tools.register(
+      defineTool({
+        name: "s1_ask",
+        timeoutMs: 45_000,
+        description:
+          "Describe what to find in natural language. Search1API chooses engines and a time window and returns results ranked by relevance. Query only; costs 5 credits.",
+        parameters: {
+          query: { type: "string", required: true, description: "Natural-language search request." },
+        },
+        output: {
+          schema: {
+            ...RESULTS_OUTPUT_SCHEMA,
+            properties: {
+              ...RESULTS_OUTPUT_SCHEMA.properties,
+              query: { type: "string", required: true },
+              intent: { type: "object", additionalProperties: true, required: true },
+              errors: { type: "array", items: { type: "object", additionalProperties: true } },
+            },
+          },
+          render: (_args, value): ContentBlock[] => textContent(value),
+        },
+        async execute(args, exec) {
+          const response = await getClient().ask(args.query, { signal: exec.signal });
+          return {
+            query: response.query,
+            intent: jsonObject(response.intent),
+            results: mapResults(response.results),
+            errors: response.errors,
+          };
         },
       })
     );

@@ -16,6 +16,7 @@ the official [`@search1api/client`](https://www.npmjs.com/package/@search1api/cl
 |------|-----------|--------|
 | `s1_search` | `Search1API.search()` | ✅ |
 | `s1_news` | `Search1API.news()` | ✅ |
+| `s1_ask` | `Search1API.ask()` | Ready |
 | `s1_crawl` | `Search1API.crawl()` | ✅ |
 | `s1_sitemap` | `Search1API.sitemap()` | ✅ |
 | `s1_trending` | `Search1API.trending()` | ✅ |
@@ -100,6 +101,7 @@ rather than re-implementing it — tracked separately from this skeleton.
 |-----|---------|-------------|
 | `search` | `true` | Register `s1_search`. |
 | `news` | `true` | Register `s1_news`. |
+| `ask` | `true` | Register `s1_ask` (5 credits per call). |
 | `crawl` | `true` | Register `s1_crawl`. |
 | `sitemap` | `true` | Register `s1_sitemap`. |
 | `trending` | `true` | Register `s1_trending`. |
@@ -112,3 +114,27 @@ npm install
 npm run typecheck
 npm run build
 ```
+
+
+## Current API capabilities
+
+Search supports `bingcn`, `yandex`, and `grokipedia`; `sogou` is removed.
+Search and news support `day`, `week`, `month`, and `year`. Search accepts
+`page` on engines with native pagination.
+
+The default Ask tool accepts only a natural-language `query`. The server
+chooses engines and a time window and returns `query`, `intent`, ranked
+`results`, and `errors`. Ask results include `source` and `relevance`; this
+endpoint returns search results rather than a generated answer. Each call
+costs **5 credits**. Use ordinary search when the engine and keywords are known.
+
+Engine-specific search/news attributes stay inside optional per-result
+`metadata`: GitHub uses `kind`, `stars`, `language`, and `num_comments`;
+Hacker News news results use `story_url`, `points`, and `num_comments`.
+`published_date` stays optional at the result top level. Zero counts are
+preserved and unavailable fields are omitted. Credit Grokipedia results as
+"Powered by xAI".
+
+`s1_ask` is enabled by default; set `ask: false` to disable it. Requires
+`@search1api/client>=0.4`. Citable output maps `link` to `url` while keeping
+dates, metadata and Ask scores.
