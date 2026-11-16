@@ -81,19 +81,24 @@ dsh-plugin/
 
 ```jsonc
 // dependencies
-"@search1api/client": "^0.2.0"
+"@search1api/client": "^0.4.0"
+// engines（DSH 兼容判定：有 engines.dsh 时只看它，忽略 peer）
+"dsh": ">=0.1.0-rc.6 <0.3.0-0"
 // peerDependencies
 "@deepseek-ai/cordis": "^4.0.1"
-"@deepseek-ai/dsh-llm": "^0.1.0-rc.6"
-"@deepseek-ai/dsh-skill": "^0.1.0-rc.6"   // 为 ctx.skills 的类型增强
-"@deepseek-ai/dsh-tools": "^0.1.0-rc.6"
-// devDependencies（typecheck/build 用）
+"@deepseek-ai/dsh-llm": ">=0.1.0-rc.6 <0.3.0-0"
+"@deepseek-ai/dsh-skill": ">=0.1.0-rc.6 <0.3.0-0"   // 为 ctx.skills 的类型增强
+"@deepseek-ai/dsh-tools": ">=0.1.0-rc.6 <0.3.0-0"
+// devDependencies（typecheck/build 用，跟随当前 DSH 版本）
+"@deepseek-ai/dsh-*": "0.2.2-rc.3"
 "@types/node": "^20.19.43"   // 必须有：源码用了 process.env
 "typescript": "^5.9.3"
 ```
 
-注意：DSH 全系 `0.1.0-rc.6`（RC 期），`defineTool`/`ctx.tools` 的 API 签名可能随版本变动，
-升级 DSH 前需重跑 typecheck。
+注意：DSH 启动时用 `dsh-app-boot` 的 `evaluatePluginCompatibility` 拿运行时版本去匹配
+`engines.dsh`（含预发布版）；不满足就报「插件不兼容，可能崩溃或数据丢失」。DSH 出 0.3 时需
+重跑 typecheck/测试，再放宽 `engines.dsh` 与 peer 范围并发版。`JsonValue` 在 0.2 从
+`dsh-tools` 移走了，源码里改为本地定义。
 
 ## 7. 下一步 / 待办
 

@@ -14,7 +14,7 @@
  */
 import type { Context } from "@deepseek-ai/cordis";
 import type { ContentBlock } from "@deepseek-ai/dsh-llm";
-import { defineTool, type JsonValue } from "@deepseek-ai/dsh-tools";
+import { defineTool } from "@deepseek-ai/dsh-tools";
 // Pull in the `ctx.skills` service type augmentation.
 import type {} from "@deepseek-ai/dsh-skill";
 import { Search1API } from "@search1api/client";
@@ -151,6 +151,9 @@ const RESULTS_OUTPUT_SCHEMA = {
     },
   },
 } as const;
+
+/** Plain JSON value; declared locally because its export moved between DSH 0.1 and 0.2. */
+type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
 function jsonObject(value: object): Record<string, JsonValue> {
   return JSON.parse(JSON.stringify(value)) as Record<string, JsonValue>;
