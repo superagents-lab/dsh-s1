@@ -1,6 +1,6 @@
 {
   "name": "dsh-s1",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Native s1 tools for the DeepSeek Harness (DSH), registered as first-class tools (s1_search, ...).",
   "type": "module",
   "main": "./lib/index.js",
@@ -33,15 +33,15 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-skill": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6"
+    "@deepseek-ai/dsh-llm": ">=0.1.0-rc.6 <0.3.0-0",
+    "@deepseek-ai/dsh-skill": ">=0.1.0-rc.6 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.1.0-rc.6 <0.3.0-0"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "^4.0.1",
-    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-skill": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-tools": "^0.1.0-rc.6",
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-skill": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
     "@types/node": "^20.19.43",
     "typescript": "^5.9.3"
   },
@@ -59,6 +59,7 @@
     "url": "git+https://github.com/superagents-lab/dsh-s1.git"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "dsh": ">=0.1.0-rc.6 <0.3.0-0"
   }
 }
